@@ -24,7 +24,7 @@ int main (int argc, char** argv){
 			//echo here
 		}else{
 			//Command line error message here
-			fpringf("Usage: wave [[-r][-s factor][-f][-o delay][-i delay][-v scale][-e delay scale] < input > output\n");
+			fprintf("Usage: wave [[-r][-s factor][-f][-o delay][-i delay][-v scale][-e delay scale] < input > output\n");
 		}
 	}
   }
