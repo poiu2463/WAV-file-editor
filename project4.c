@@ -4,7 +4,8 @@
 void reverse (short* channel, int length); //prototype functions
 /**
  * Function: 	getShort (short)
- * Returns: 	an int, read from standard input. 
+ * Returns: 	a byte. 
+ * This is a line Lexi wrote.
  **/
 
 short getShort() {
