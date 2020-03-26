@@ -1,7 +1,7 @@
 #include <string.h>
 #include "wave.h" //wittman's header file (MUST BE COMPILED)
 
-void reverse (&left, &right, length); //prototype functions
+void reverse (short* channel, int length); //prototype functions
 /**
  * Function: 	getShort (short)
  * Returns: 	an int, read from standard input. 
