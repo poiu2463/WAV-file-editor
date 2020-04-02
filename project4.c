@@ -1,32 +1,47 @@
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "wave.h" //wittman's header file (MUST BE COMPILED)
 
-void reverse (short* channel, int length); //prototype functions
-/**
- * Function: 	getShort (short)
- * Returns: 	a byte. 
- * This is a line Lexi wrote.
- **/
+#define BYTE_SIZE 8
+#define BYTE_MASK 255
 
+void reverse (short* channel, int length); //prototype functions
+
+void flipChannels (short* right, short* left);
+//prototype for flip channel
+//doesn't feel right
+
+void changeSpeed(short* right, short* left, int length, int factor);
+//prototype for changing the speed
+//I know we need length but not sure about how we get the factor
+
+
+/**
+ * Function:  getShort (short)
+ * Returns:   a byte.
+ **/
 short getShort() {
   int firstByte = getchar();
   int secondByte = getchar();
 
-  short temp = secondByte<<8 | firstByte; //due to little endian file format (biggest byte is second)
+  short temp = secondByte<<BYTE_SIZE | firstByte; //due to little endian file format (biggest byte is second)
   
   return temp;
 }
 
-/*
-short writeBytes() {
-  int firstByte = getchar();
-  int secondByte = getchar();
-
-  short temp = secondByte<<8 | firstByte; //due to little endian file format (biggest byte is second)
+/**
+ * Function:  writeBytes 
+ * Returns:   a char, made up of two bytes
+ **/
+void writeBytes(short output) {
+  int secondByte = output>>BYTE_SIZE;  // high byte
+  int firstByte = output & BYTE_MASK;
   
-  return temp;
+  putchar(firstByte);
+  putchar(secondByte);
 }
-*/
+
 
 int main (int argc, char** argv){
   WaveHeader header;
@@ -47,39 +62,61 @@ int main (int argc, char** argv){
 		
 		if(strcmp(currentArgV, "-r") == 0){
 			//reverse sound here	
+			fprintf(stderr, "Reversing\n");
 			reverse(left, length);
 			reverse(right, length);
-		}else if(strcmp(currentArgv, "-s") == 0){
+		}else if(strcmp(currentArgV, "-s") == 0){
 			//speed change here	
-		}else if(strcmp(currentArgv, "-f") == 0){
+		}else if(strcmp(currentArgV, "-f") == 0){
 			//flip channels here
-		}else if(strcmp(currentArgv, "-o") == 0){
+			short* temp = right;
+  			right = left;
+  			left = temp;
+		}else if(strcmp(currentArgV, "-o") == 0){
 			//fade out here
-		}else if(strcmp(currentArgv, "-i") == 0){
+		}else if(strcmp(currentArgV, "-i") == 0){
 			//fade in here
-		}else if(strcmp(currentArgv, "-v") == 0){
+		}else if(strcmp(currentArgV, "-v") == 0){
 			//change volume here
-		}else if(strcmp(currentArgv, "-e") == 0){
+		}else if(strcmp(currentArgV, "-e") == 0){
 			//echo here
 		}else{
 			//Command line error message here
-			fprintf("Usage: wave [[-r][-s factor][-f][-o delay][-i delay][-v scale][-e delay scale] < input > output\n");
+			fprintf(stderr, "Usage: wave [[-r][-s factor][-f][-o delay][-i delay][-v scale][-e delay scale] < input > output\n");
 		}
 
 	}
   //here we need to writeHeader
   //output all left/right channel data by doing the opposite of the above input blocks of code: read two shorts in left and right channel and output the bytes 
-  
+	writeHeader(&header);
+
+	for(int i = 0; i < length; ++i){
+    	writeBytes(left[i]);
+    	writeBytes(right[i]);
+  	}
 	return 0;
 	
 }
 
 void reverse (short* channel, int length) {
 	for(int i = 0; i < length/2; i++){ // divide by 4 to get half of each channel
-		short temp = channel[length -i];
-		channel[length-i] = channel[i];
+		short temp = channel[length-1-i];
+		channel[length-1-i] = channel[i];
 		channel[i] = temp;	
 	}
-	
 }
 
+void changeSpeed(short* right, short* left, int length, int factor){
+  short newRight[length/factor];
+  short newLeft[length/factor];
+  for(int i = 0; i < length; i++){
+    newRight[i] = right[i*factor];
+    newLeft[i] = left[i*factor];
+  }
+}
+
+/*void flipChannels(short* right, short* left){
+  short* temp = right;
+  right = left;
+  left = temp;
+}*/ 
