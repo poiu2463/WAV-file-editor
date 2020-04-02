@@ -114,9 +114,3 @@ void changeSpeed(short* right, short* left, int length, int factor){
     newLeft[i] = left[i*factor];
   }
 }
-
-/*void flipChannels(short* right, short* left){
-  short* temp = right;
-  right = left;
-  left = temp;
-}*/ 
