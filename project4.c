@@ -1,7 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include "wave.h" //wittman's header file (MUST BE COMPILED)
+
 
 #define BYTE_SIZE 8
 #define BYTE_MASK 255
@@ -16,6 +18,11 @@ void changeSpeed(short* right, short* left, int length, int factor);
 //prototype for changing the speed
 //I know we need length but not sure about how we get the factor
 
+
+void volumeChange(short* left, short* right, double scale, int length);
+//prototype for volume change
+short clamp (double value);
+//prototype of clamp
 
 /**
  * Function:  getShort (short)
@@ -78,6 +85,10 @@ int main (int argc, char** argv){
 			//fade in here
 		}else if(strcmp(currentArgV, "-v") == 0){
 			//change volume here
+			++i;
+			double scale = atof(argv[i]);
+			volumeChange(left, right, scale, length);
+			
 		}else if(strcmp(currentArgV, "-e") == 0){
 			//echo here
 		}else{
@@ -98,19 +109,42 @@ int main (int argc, char** argv){
 	
 }
 
-void reverse (short* channel, int length) {
-	for(int i = 0; i < length/2; i++){ // divide by 4 to get half of each channel
-		short temp = channel[length-1-i];
-		channel[length-1-i] = channel[i];
-		channel[i] = temp;	
-	}
-}
 
-void changeSpeed(short* right, short* left, int length, int factor){
-  short newRight[length/factor];
-  short newLeft[length/factor];
-  for(int i = 0; i < length; i++){
-    newRight[i] = right[i*factor];
-    newLeft[i] = left[i*factor];
+
+	void reverse (short* channel, int length) {
+		for(int i = 0; i < length/2; i++){ // divide by 4 to get half of each channel
+			short temp = channel[length-1-i];
+			channel[length-1-i] = channel[i];
+			channel[i] = temp;	
+		}
+	}
+
+	void changeSpeed(short* right, short* left, int length, int factor){
+	  short newRight[length/factor];
+	  short newLeft[length/factor];
+	  for(int i = 0; i < length; i++){
+		newRight[i] = right[i*factor];
+		newLeft[i] = left[i*factor];
+	  }
   }
-}
+  
+	  
+	void volumeChange(short* left, short* right, double scale, int length){
+		for(int i = 0; i < length; i++){
+			int leftNum = left[i];
+			int rightNum = right[i];
+			leftNum *= scale;
+			rightNum *= scale;
+			left[i] = clamp(leftNum);
+			right[i] = clamp(rightNum);
+		}
+	}
+	
+	short clamp (double value){
+		if(value < SHRT_MIN)
+			return (short) SHRT_MIN;
+		if(value > SHRT_MAX)
+			return (short) SHRT_MAX;
+		return (short) value;
+	}
+
