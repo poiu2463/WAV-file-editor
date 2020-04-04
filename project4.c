@@ -2,27 +2,29 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <math.h>
 #include "wave.h" //wittman's header file (MUST BE COMPILED)
-
 
 #define BYTE_SIZE 8
 #define BYTE_MASK 255
+#define SAMPLE_RATE 44100
 
 void reverse (short* channel, int length); //prototype functions
 
-void flipChannels (short* right, short* left);
-//prototype for flip channel
-//doesn't feel right
+void fadeIn(short* channel, int length, double seconds);
 
-void changeSpeed(short* right, short* left, int length, int factor);
+void fadeOut(double time);
+
+short* changeSpeed(short* channel, int length, int factor);
 //prototype for changing the speed
 //I know we need length but not sure about how we get the factor
-
 
 void volumeChange(short* left, short* right, double scale, int length);
 //prototype for volume change
 short clamp (double value);
 //prototype of clamp
+
+void echo(double delay, double scale);
 
 /**
  * Function:  getShort (short)
@@ -74,6 +76,13 @@ int main (int argc, char** argv){
 			reverse(right, length);
 		}else if(strcmp(currentArgV, "-s") == 0){
 			//speed change here	
+			++i;
+			double factor = atof(argv[i]);
+			left = changeSpeed(left, length, factor);
+			right = changeSpeed(right, length, factor);
+
+			length = length/factor;
+			
 		}else if(strcmp(currentArgV, "-f") == 0){
 			//flip channels here
 			short* temp = right;
@@ -97,6 +106,8 @@ int main (int argc, char** argv){
 		}
 
 	}
+	header.dataChunk.size = length * 4;
+	header.size = header.dataChunk.size + 36;
   //here we need to writeHeader
   //output all left/right channel data by doing the opposite of the above input blocks of code: read two shorts in left and right channel and output the bytes 
 	writeHeader(&header);
@@ -109,8 +120,6 @@ int main (int argc, char** argv){
 	
 }
 
-
-
 	void reverse (short* channel, int length) {
 		for(int i = 0; i < length/2; i++){ // divide by 4 to get half of each channel
 			short temp = channel[length-1-i];
@@ -119,14 +128,26 @@ int main (int argc, char** argv){
 		}
 	}
 
-	void changeSpeed(short* right, short* left, int length, int factor){
-	  short newRight[length/factor];
-	  short newLeft[length/factor];
-	  for(int i = 0; i < length; i++){
-		newRight[i] = right[i*factor];
-		newLeft[i] = left[i*factor];
+	short* changeSpeed(short* channel, int length, int factor){
+	  short* newChannel = (short*)malloc(sizeof(short)*length/factor);
+
+	  for(int i = 0; i < length/factor; i++){
+		newChannel[i] = channel[i*factor];
 	  }
-  }
+	  free(channel);
+	  return newChannel;
+  	}
+
+	void fadeIn(short* channel, int length, double seconds) {
+		int sampleNumber = SAMPLE_RATE * seconds;
+		for(int i = 0; i < sampleNumber && i < length; ++i) {
+			channel[i] *= (i/(double)sampleNumber)*(i/(double)sampleNumber);
+		}
+	}
+
+	void fadeOut(double time) {
+		int sampleNumber = SAMPLE_RATE * time;
+	}
   
 	  
 	void volumeChange(short* left, short* right, double scale, int length){
@@ -147,4 +168,11 @@ int main (int argc, char** argv){
 			return (short) SHRT_MAX;
 		return (short) value;
 	}
+
+	// void echo(double delay, double scale){
+	// 	int sampleNumber = delay * SAMPLE_RATE;
+	// 	short* newRightSound = (short*)malloc(sizeof(short)*sampleNumber);
+	// 	short* newLeftSound = (short*)malloc(sizeof(short)*sampleNumber);
+	// 	while()
+	// }
 
