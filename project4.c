@@ -5,6 +5,7 @@
 #include <math.h>
 #include "wave.h" //wittman's header file (MUST BE COMPILED)
 
+
 #define BYTE_SIZE 8
 #define BYTE_MASK 255
 #define SAMPLE_RATE 44100
