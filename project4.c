@@ -13,7 +13,7 @@ void reverse (short* channel, int length); //prototype functions
 
 void fadeIn(short* channel, int length, double seconds);
 
-void fadeOut(double time);
+void fadeOut(short* channel, int length, double time);
 
 short* changeSpeed(short* channel, int length, int factor);
 //prototype for changing the speed
@@ -24,7 +24,7 @@ void volumeChange(short* left, short* right, double scale, int length);
 short clamp (double value);
 //prototype of clamp
 
-void echo(double delay, double scale);
+short* echo(int sampleDelay, double scale, short* channel, int length);
 
 /**
  * Function:  getShort (short)
@@ -55,9 +55,14 @@ void writeBytes(short output) {
 int main (int argc, char** argv){
   WaveHeader header;
   readHeader(&header);
+  // error checking
+  if (strncmp(header.ID, "RIFF", 4) != 0) {
+	fprintf(stderr, "File is not a RIFF file\n");
+	exit(1);
+  }
+
   int length = header.dataChunk.size/4; 
   // divide into two channels and then into shorts
-
   short* left = (short*)malloc(sizeof(short)*length);
   short* right = (short*)malloc(sizeof(short)*length);
 
@@ -89,9 +94,17 @@ int main (int argc, char** argv){
   			right = left;
   			left = temp;
 		}else if(strcmp(currentArgV, "-o") == 0){
+			++i;
+			double seconds = atof(argv[i]);
 			//fade out here
+			fadeOut(left, length, seconds);
+			fadeOut(right, length, seconds);
 		}else if(strcmp(currentArgV, "-i") == 0){
+			++i;
+			double seconds = atof(argv[i]);
 			//fade in here
+			fadeIn(left, length, seconds);
+			fadeIn(right, length, seconds);
 		}else if(strcmp(currentArgV, "-v") == 0){
 			//change volume here
 			++i;
@@ -100,6 +113,14 @@ int main (int argc, char** argv){
 			
 		}else if(strcmp(currentArgV, "-e") == 0){
 			//echo here
+			i++;
+			double delay = atof(argv[i]);
+			int sampleDelay = delay * SAMPLE_RATE;
+			++i;
+			double scale = atof(argv[i]);
+			left = echo(sampleDelay, scale, left, length);
+			right = echo(sampleDelay, scale, right, length);
+			length = length + sampleDelay;
 		}else{
 			//Command line error message here
 			fprintf(stderr, "Usage: wave [[-r][-s factor][-f][-o delay][-i delay][-v scale][-e delay scale] < input > output\n");
@@ -108,16 +129,15 @@ int main (int argc, char** argv){
 	}
 	header.dataChunk.size = length * 4;
 	header.size = header.dataChunk.size + 36;
-  //here we need to writeHeader
-  //output all left/right channel data by doing the opposite of the above input blocks of code: read two shorts in left and right channel and output the bytes 
+  	//here we need to writeHeader
+  	//output all left/right channel data by doing the opposite of the above input blocks of code: read two shorts in left and right channel and output the bytes 
 	writeHeader(&header);
 
 	for(int i = 0; i < length; ++i){
     	writeBytes(left[i]);
     	writeBytes(right[i]);
   	}
-	return 0;
-	
+	return 0;	
 }
 
 	void reverse (short* channel, int length) {
@@ -145,11 +165,13 @@ int main (int argc, char** argv){
 		}
 	}
 
-	void fadeOut(double time) {
+	void fadeOut(short* channel, int length, double time) {
 		int sampleNumber = SAMPLE_RATE * time;
+		for(int i = length-1; i >= length-sampleNumber && i >= 0; --i) {
+			channel[i] *= ((length-i)/(double)sampleNumber)*((length-i)/(double)sampleNumber);
+		}
 	}
   
-	  
 	void volumeChange(short* left, short* right, double scale, int length){
 		for(int i = 0; i < length; i++){
 			int leftNum = left[i];
@@ -169,10 +191,17 @@ int main (int argc, char** argv){
 		return (short) value;
 	}
 
-	// void echo(double delay, double scale){
-	// 	int sampleNumber = delay * SAMPLE_RATE;
-	// 	short* newRightSound = (short*)malloc(sizeof(short)*sampleNumber);
-	// 	short* newLeftSound = (short*)malloc(sizeof(short)*sampleNumber);
-	// 	while()
-	// }
+	short* echo(int sampleDelay, double scale, short* channel, int length){
+		short* echoChannel = (short*)calloc(length+sampleDelay, sizeof(short));
 
+		// for copying the original channel into the echo channel 
+		for(int i = 0; i < length; ++i) {
+			echoChannel[i] = channel[i];
+		}
+		//where we add the echo by starting at the sample number + position
+		for(int i = 0; i < length; ++i) {
+			echoChannel[sampleDelay + i] = clamp(echoChannel[sampleDelay + i] + channel[i] * scale);
+		}
+		free(channel);
+		return echoChannel;
+	}
